@@ -1,6 +1,6 @@
 ## 2.1 The Unicode Standard
 - (a) It returns`'\x00'`, the null character (often denoted as U+0000 or NULL).
-- (b) `__repr__()` returns machine-readable string. For printable input object, it returns a string literal with single quotation mark to indicate its return is a literal. For nonprintable pbject input, it calls `ord()` to convert the `chr()` return string object to the *escape sequence* with single quotation mark. However, `print()` returns `None` so its return value doesn't trigger an additional `__repr__()`. In `print()`, it convert the input object to string object and write to the pipe. That is to say, `print()` writes human-readable string.
+- (b) `__repr__()` returns machine-readable string. For printable input object, it returns a string with single quotation mark to indicate its return is a literal. For nonprintable pbject input, it calls `ord()` to convert the `chr()` return string object to the *escape sequence* with single quotation mark. However, `print()` returns `None` so its return value doesn't trigger an additional `__repr__()`. In `print()`, it convert the input object to string object and write to the pipe. That is to say, `print()` writes human-readable string.
 - (c)  The character exists in the string's memory as a valid data type but it is non-printable. Therefore, it is visible as an escape sequence in the shell 's echoing but results in novisible marks on the screen whne printed.
 
 ## 2.2 Unicode Encodings
