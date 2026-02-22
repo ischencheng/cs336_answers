@@ -41,15 +41,20 @@ def bbpe(input_path:str, vocab_size:int, special_tokens:list[str])->tuple[dict[i
     for i,t in enumerate(special_tokens):
         vocab[i+BYTE_VOCAB_SIZE]=t.encode('utf-8')
     merges=[]
+
+
+    #compute pair frequency
+    pair_freqs=defaultdict(int)
+    pair_pre_token=defaultdict(set)
+    for pre_token,split in pre_token_splits.items():
+        for i in range(len(split)-1):
+            pair=(split[i],split[i+1])
+            pair_freqs[pair]+=pre_token_cnts[pre_token]
+            #cache
+            pair_pre_token[pair].add(pre_token)
     #merges up to vocab_size:
     while len(vocab)<vocab_size:
-        #compute pair frequency
-        pair_freqs=defaultdict(int)
-        for pre_token,split in pre_token_splits.items():
-            for i in range(len(split)-1):
-                pair=(split[i],split[i+1])
-                pair_freqs[pair]+=pre_token_cnts[pre_token]
-        
+
         if len(pair_freqs)==0:
             print('not enough pairs before reach vocab size')
             break
@@ -59,15 +64,34 @@ def bbpe(input_path:str, vocab_size:int, special_tokens:list[str])->tuple[dict[i
 
         #merge best pair
         merged_byte=b''.join(best_pair)
-        for pre_token, split in pre_token_splits.items():
+        for pre_token in pair_pre_token[best_pair]:
+            split=pre_token_splits[pre_token]
             i=0
             # length of split changes, must use while
             while i<len(split)-1:
                 if split[i:i+2]==list(best_pair):
+                    if i>0:
+                        pair_freqs[(split[i-1],split[i])]-=pre_token_cnts[pre_token]
+                        if pair_freqs[(split[i-1],split[i])]==0:
+                            del pair_pre_token[(split[i-1],split[i])]
+                    if i<len(split)-2:
+                        pair_freqs[(split[i+1],split[i+2])]-=pre_token_cnts[pre_token]
+                        if pair_freqs[(split[i+1],split[i+2])]==0:
+                            del pair_pre_token[(split[i+1],split[i+2])]
+                    pair_freqs[best_pair]-=pre_token_cnts[pre_token]
+
                     split=split[:i]+[merged_byte]+split[i+2:]
+                    if  i>0:
+                        pair_freqs[(split[i-1],split[i])]+=pre_token_cnts[pre_token]
+                        pair_pre_token[(split[i-1],split[i])].add(pre_token)
+                    if i<len(split)-1:
+                        pair_freqs[(split[i],split[i+1])]+=pre_token_cnts[pre_token]
+                        pair_pre_token[(split[i],split[i+1])].add(pre_token)
                 else:
                     i+=1
             pre_token_splits[pre_token]=split
+        assert pair_freqs[best_pair]==0, f"pair freqs is not 0: {pair_freqs[best_pair]}"
+        del pair_freqs[best_pair]
         
         #collect merge rules and new token
         merges.append(best_pair)
@@ -78,7 +102,7 @@ def bbpe(input_path:str, vocab_size:int, special_tokens:list[str])->tuple[dict[i
 
 
 if __name__=="__main__":
-    vocab, merge=bbpe('./data/TinyStoriesV2-GPT4-valid.txt', 1000, ["<|endoftext|>"])
+    vocab, merge=bbpe('./cs336_basics/data/debug.txt', 263, ["<|endoftext|>"])
     print(vocab)
     print(merge)
 
