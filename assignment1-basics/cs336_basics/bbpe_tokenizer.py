@@ -50,7 +50,7 @@ def bbpe(input_path:str, vocab_size:int, special_tokens:list[str])->tuple[dict[i
                     pre_token_cnts[pre_token_str]+=cnt
     
         for pre_token_str in pre_token_cnts:
-            pre_token_splits[pre_token_str]=list(bytes([b]) for b in pre_token_str.encode('utf-8'))
+            pre_token_splits[pre_token_str] = [bytes([b]) for b in pre_token_str.encode('utf-8')]
 
 
     #initialize vocab
@@ -81,34 +81,42 @@ def bbpe(input_path:str, vocab_size:int, special_tokens:list[str])->tuple[dict[i
 
         #merge best pair
         merged_byte=b''.join(best_pair)
+        best_p0, best_p1 = best_pair
         for pre_token in pair_pre_token[best_pair]:
             split=pre_token_splits[pre_token]
             i=0
             # length of split changes, must use while
             while i<len(split)-1:
-                if split[i:i+2]==list(best_pair):
+                if split[i] == best_p0 and split[i+1] == best_p1:
                     if i>0:
-                        pair_freqs[(split[i-1],split[i])]-=pre_token_cnts[pre_token]
-                        if pair_freqs[(split[i-1],split[i])]==0:
-                            del pair_pre_token[(split[i-1],split[i])]
+                        prev_pair = (split[i-1], split[i])
+                        pair_freqs[prev_pair]-=pre_token_cnts[pre_token]
+                        if pair_freqs[prev_pair]==0:
+                            pair_pre_token.pop(prev_pair, None)
+                            pair_freqs.pop(prev_pair, None)
                     if i<len(split)-2:
-                        pair_freqs[(split[i+1],split[i+2])]-=pre_token_cnts[pre_token]
-                        if pair_freqs[(split[i+1],split[i+2])]==0:
-                            del pair_pre_token[(split[i+1],split[i+2])]
+                        next_pair = (split[i+1], split[i+2])
+                        pair_freqs[next_pair]-=pre_token_cnts[pre_token]
+                        if pair_freqs[next_pair]==0:
+                            pair_pre_token.pop(next_pair, None)
+                            pair_freqs.pop(next_pair, None)
                     pair_freqs[best_pair]-=pre_token_cnts[pre_token]
 
-                    split=split[:i]+[merged_byte]+split[i+2:]
+                    split[i:i+2] = [merged_byte]
                     if  i>0:
-                        pair_freqs[(split[i-1],split[i])]+=pre_token_cnts[pre_token]
-                        pair_pre_token[(split[i-1],split[i])].add(pre_token)
+                        new_prev_pair = (split[i-1], split[i])
+                        pair_freqs[new_prev_pair]+=pre_token_cnts[pre_token]
+                        pair_pre_token[new_prev_pair].add(pre_token)
                     if i<len(split)-1:
-                        pair_freqs[(split[i],split[i+1])]+=pre_token_cnts[pre_token]
-                        pair_pre_token[(split[i],split[i+1])].add(pre_token)
+                        new_next_pair = (split[i], split[i+1])
+                        pair_freqs[new_next_pair]+=pre_token_cnts[pre_token]
+                        pair_pre_token[new_next_pair].add(pre_token)
                 else:
                     i+=1
-            pre_token_splits[pre_token]=split
-        assert pair_freqs[best_pair]==0, f"pair freqs is not 0: {pair_freqs[best_pair]}"
-        del pair_freqs[best_pair]
+            # pre_token_splits[pre_token]=split is not needed since split is modified in-place
+        assert pair_freqs.get(best_pair, 0)==0, f"pair freqs is not 0: {pair_freqs.get(best_pair)}"
+        pair_freqs.pop(best_pair, None)
+        pair_pre_token.pop(best_pair, None)
         
         #collect merge rules and new token
         merges.append(best_pair)
