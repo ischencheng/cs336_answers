@@ -1,8 +1,16 @@
+
 from collections import defaultdict
 import concurrent.futures
+import json,os,sys,time
 import regex as re
-from pretokenization_example import find_chunk_boundaries
+
+# Add project root to sys.path to import common testing utils
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+from cs336_basics.pretokenization_example import find_chunk_boundaries
 from line_profiler import profile
+
 
 PAT = re.compile(r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
 BYTE_VOCAB_SIZE = 256
@@ -127,9 +135,48 @@ def bbpe(input_path:str, vocab_size:int, special_tokens:list[str])->tuple[dict[i
 
 
 if __name__=="__main__":
-    vocab, merge=bbpe('./cs336_basics/data/TinyStoriesV2-GPT4-valid.txt', 500, ["<|endoftext|>"])
-    # print(vocab)
-    # print(merge)
+    import os
+    import sys
+    import json
+    
 
-                 
+        
+    from tests.common import gpt2_bytes_to_unicode
 
+    dataset = 'TinyStoriesV2-GPT4-train.txt'
+    dataset_path = f'./cs336_basics/data/{dataset}'
+    
+    print(f"Training BBPE on {dataset}...")
+    start=time.time()
+    vocab, merges = bbpe(dataset_path, 10000, ["<|endoftext|>"])
+
+    # Ensure results directory exists
+    os.makedirs('./results', exist_ok=True)
+
+    # 1. Get the mapping from bytes (0-255) to printable Unicode characters
+    byte_encoder = gpt2_bytes_to_unicode()
+
+    # 2. Save merges to a text file
+    merges_path = f"./results/{dataset.split('.')[0]}_merges.txt"
+    with open(merges_path, 'w', encoding='utf-8') as f:
+        for pair in merges:
+            # Convert each byte in the tuple to its corresponding Unicode character
+            part1_str = "".join([byte_encoder[b] for b in pair[0]])
+            part2_str = "".join([byte_encoder[b] for b in pair[1]])
+            f.write(f"{part1_str} {part2_str}\n")
+    print(f"Saved merges to {merges_path}")
+
+    # 3. Save vocabulary to a JSON file
+    vocab_path = f"./results/{dataset.split('.')[0]}_vocab.json"
+    json_vocab = {}
+    for token_id, token_bytes in vocab.items():
+        # Convert byte sequence to a visible string using the same mapping
+        token_str = "".join([byte_encoder[b] for b in token_bytes])
+        json_vocab[token_str] = token_id
+
+    with open(vocab_path, 'w', encoding='utf-8') as f:
+        # ensure_ascii=False keeps the special Unicode characters intact in the JSON
+        json.dump(json_vocab, f, indent=2, ensure_ascii=False)
+    print(f"Saved vocab to {vocab_path}")
+    end=time.time()
+    print(f"BBPE training has finished in {end-start} seconds")
