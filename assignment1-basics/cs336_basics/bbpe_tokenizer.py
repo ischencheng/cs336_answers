@@ -42,7 +42,7 @@ def bbpe(input_path:str, vocab_size:int, special_tokens:list[str])->tuple[dict[i
     pre_token_splits:defaultdict[str,list[bytes,...]]=defaultdict(bytes)
     #pre-tokenization
     with open(input_path, "rb") as f:
-        num_processes = 1
+        num_processes = 4
         boundaries = find_chunk_boundaries(f, num_processes, b"<|endoftext|>")
 
         # The following is a serial implementation, but you can parallelize this
@@ -143,12 +143,13 @@ if __name__=="__main__":
         
     from tests.common import gpt2_bytes_to_unicode
 
-    dataset = 'TinyStoriesV2-GPT4-train.txt'
+    dataset = 'TinyStoriesV2-GPT4-valid.txt'
+    dataset_name,_=os.path.splitext(dataset)
     dataset_path = f'./cs336_basics/data/{dataset}'
     
     print(f"Training BBPE on {dataset}...")
     start=time.time()
-    vocab, merges = bbpe(dataset_path, 10000, ["<|endoftext|>"])
+    vocab, merges = bbpe(dataset_path, 500, ["<|endoftext|>"])
 
     # Ensure results directory exists
     os.makedirs('./results', exist_ok=True)
@@ -157,7 +158,7 @@ if __name__=="__main__":
     byte_encoder = gpt2_bytes_to_unicode()
 
     # 2. Save merges to a text file
-    merges_path = f"./results/{dataset.split('.')[0]}_merges.txt"
+    merges_path = f"./results/{dataset_name}_merges.txt"
     with open(merges_path, 'w', encoding='utf-8') as f:
         for pair in merges:
             # Convert each byte in the tuple to its corresponding Unicode character
@@ -167,7 +168,7 @@ if __name__=="__main__":
     print(f"Saved merges to {merges_path}")
 
     # 3. Save vocabulary to a JSON file
-    vocab_path = f"./results/{dataset.split('.')[0]}_vocab.json"
+    vocab_path = f"./results/{dataset_name}_vocab.json"
     json_vocab = {}
     for token_id, token_bytes in vocab.items():
         # Convert byte sequence to a visible string using the same mapping
