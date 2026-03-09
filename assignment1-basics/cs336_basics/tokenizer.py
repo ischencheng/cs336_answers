@@ -32,58 +32,27 @@ class Tokenizer:
     
     @classmethod
     def from_files(cls, vocab_filepath:str, merges_filepath:str, special_tokens:list[str] | None=None)->None:
-        # gpt2_byte_encoder=gpt2_bytes_to_unicode()
-        # gpt2_byte_decoder={v:k for k,v in gpt2_byte_encoder.items()}
-        # with open(vocab_filepath,'r') as vf:
-        #     vocab_str_to_index=json.load(vf)
-        #     vocab_index_to_bytes={i:bytes([gpt2_byte_decoder[c] for c in s]) for s,i in vocab_str_to_index.items()}
+        gpt2_byte_encoder=gpt2_bytes_to_unicode()
+        gpt2_byte_decoder={v:k for k,v in gpt2_byte_encoder.items()}
+        with open(vocab_filepath,'r') as vf:
+            vocab_str_to_index=json.load(vf)
+            vocab_index_to_bytes={i:bytes([gpt2_byte_decoder[c] for c in s]) for s,i in vocab_str_to_index.items()}
 
-        # if special_tokens:
-        #     for special_token in special_tokens:
-        #         special_token_bytes=special_token.encode('utf-8')
-        #         if special_token_bytes not in set(vocab_index_to_bytes.values()):
-        #             vocab_index_to_bytes[len(vocab_index_to_bytes)]=special_token_bytes
-        
-        # merges=[]
-        # with open(merges_filepath,'r') as mf:
-        #     for line in mf.readlines():
-        #         part1_str,part2_str=line.rstrip().split(' ')
-        #         part1_bytes=bytes([gpt2_byte_decoder[c] for c in part1_str])
-        #         part2_bytes=bytes([gpt2_byte_decoder[c] for c in part2_str])
-        #         merges.append((part1_bytes,part2_bytes))
-    
-        # return cls(vocab_index_to_bytes,merges,special_tokens)
-        gpt2_byte_decoder = {v: k for k, v in gpt2_bytes_to_unicode().items()}
-        with open(vocab_filepath, encoding="utf-8") as vocab_f:
-            gpt2_vocab = json.load(vocab_f)
-        gpt2_bpe_merges = []
-        with open(merges_filepath, encoding="utf-8") as f:
-            for line in f:
-                cleaned_line = line.rstrip()
-                if cleaned_line and len(cleaned_line.split(" ")) == 2:
-                    gpt2_bpe_merges.append(tuple(cleaned_line.split(" ")))
-        # The GPT-2 tokenizer uses a remapped unicode encoding for bytes. Let's
-        # just return the original bytes, so we don't force students to use
-        # any particular encoding scheme.
-        vocab = {
-            gpt2_vocab_index: bytes([gpt2_byte_decoder[token] for token in gpt2_vocab_item])
-            for gpt2_vocab_item, gpt2_vocab_index in gpt2_vocab.items()
-        }
-        # If any of the special tokens don't exist in the vocab, append them to the vocab.
         if special_tokens:
             for special_token in special_tokens:
-                byte_encoded_special_token = special_token.encode("utf-8")
-                if byte_encoded_special_token not in set(vocab.values()):
-                    vocab[len(vocab)] = byte_encoded_special_token
-
-        merges = [
-            (
-                bytes([gpt2_byte_decoder[token] for token in merge_token_1]),
-                bytes([gpt2_byte_decoder[token] for token in merge_token_2]),
-            )
-            for merge_token_1, merge_token_2 in gpt2_bpe_merges
-        ]
-        return cls(vocab, merges, special_tokens)
+                special_token_bytes=special_token.encode('utf-8')
+                if special_token_bytes not in set(vocab_index_to_bytes.values()):
+                    vocab_index_to_bytes[len(vocab_index_to_bytes)]=special_token_bytes
+        
+        merges=[]
+        with open(merges_filepath,'r') as mf:
+            for line in mf.readlines():
+                part1_str,part2_str=line.rstrip().split(' ')
+                part1_bytes=bytes([gpt2_byte_decoder[c] for c in part1_str])
+                part2_bytes=bytes([gpt2_byte_decoder[c] for c in part2_str])
+                merges.append((part1_bytes,part2_bytes))
+    
+        return cls(vocab_index_to_bytes,merges,special_tokens)
     
     def _encode_pretoken_bytes(self, pre_token_bytes: bytes) -> list[bytes]:
         split = [bytes([b]) for b in pre_token_bytes]
