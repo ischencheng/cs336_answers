@@ -143,13 +143,13 @@ if __name__=="__main__":
         
     from tests.common import gpt2_bytes_to_unicode
 
-    dataset = 'TinyStoriesV2-GPT4-valid.txt'
+    dataset = 'TinyStoriesV2-GPT4-train.txt'
     dataset_name,_=os.path.splitext(dataset)
     dataset_path = f'./cs336_basics/data/{dataset}'
     
     print(f"Training BBPE on {dataset}...")
     start=time.time()
-    vocab, merges = bbpe(dataset_path, 500, ["<|endoftext|>"])
+    vocab, merges = bbpe(dataset_path, 10000, ["<|endoftext|>"])
 
     # Ensure results directory exists
     os.makedirs('./results', exist_ok=True)

@@ -12,8 +12,8 @@ Problem (unicode2): Unicode Encodings (3 points)
 
 ## 2.5 Experimenting with BPE Tokenizer Training
 Problem (train_bpe_tinystories): BPE Training on TinyStories (2 points)
-- (a) It takes 340.9s and [9GB](./mprofile_20260308192718.dat). The longest token is [Ġaccomplishment](./TinyStoriesV2-GPT4-train_vocab.json) with  gpt2_bytes_to_unicode. 
-- (b) The most time-consuming part is [pretokenization in subprocesses](./profile_output_2026-03-08T190641.txt)
+- (a) It takes 148.8s and [9GB](./mprofile_20260308192718.dat). The longest token is [Ġaccomplishment](./TinyStoriesV2-GPT4-train_vocab.json) with  gpt2_bytes_to_unicode. 
+- (b) The most time-consuming part is to [get the most frequent pair](./profile_output_2026-03-09T193335.txt)
 
 Problem (train_bpe_expts_owt): BPE Training on OpenWebText (2 points)
 skip
